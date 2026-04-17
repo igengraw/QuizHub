@@ -18,13 +18,22 @@ const Login = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // СОХРАНЯЕМ ТОКЕН В БРАУЗЕРЕ
+        // Сохраняем токен и имя
         localStorage.setItem('token', data.token);
-        localStorage.setItem('username', data.user.username);
+        localStorage.setItem('username', data.user?.username || 'Пользователь');
         
-        navigate('/dashboard');
-      } else {
-        alert(data.message);
+        // Извлекаем ID (теперь бэкенд шлет userId напрямую)
+        const id = data.userId || data.user?.id;
+        
+        if (id) {
+          localStorage.setItem('userId', id);
+          localStorage.setItem('user', JSON.stringify({ userId: id }));
+          console.log("Успешный вход, ID сохранен:", id);
+          navigate('/dashboard');
+        } else {
+          console.error("Сервер не прислал ID пользователя!", data);
+          alert("Ошибка: не удалось получить ID пользователя");
+        }
       }
     } catch (error) {
       alert('Ошибка соединения с сервером');

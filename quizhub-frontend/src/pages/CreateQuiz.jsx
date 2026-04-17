@@ -19,17 +19,59 @@ const CreateQuiz = () => {
     setQuestions(newQuestions);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log({ title, questions });
-    alert('Квиз сохранен локально (в консоли)!');
-    navigate('/dashboard');
+    
+    // 1. Пытаемся достать ID всеми способами
+    const userData = localStorage.getItem('user');
+    const user = userData ? JSON.parse(userData) : null;
+    
+    // Ищем userId (как в токене) или id
+    const creatorId = user?.userId || user?.id || localStorage.getItem('userId');
+
+    console.log("DEBUG: Пытаюсь создать квиз с creatorId:", creatorId);
+
+    if (!creatorId || creatorId === 'undefined') {
+      alert('Ошибка: Авторизуйтесь, чтобы создать квиз');
+      navigate('/login');
+      return;
+    }
+
+    // 2. Если ID есть, отправляем запрос
+    try {
+      const response = await fetch('http://localhost:5000/api/quizzes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, questions, creatorId: Number(creatorId) }) // Явно в число
+      });
+      
+      // ... дальше твой код (if response.ok и т.д.)
+      if (response.ok) {
+        alert('Викторина успешно создана!');
+        navigate('/dashboard');
+      } else {
+        const errorData = await response.json();
+        alert('Ошибка при сохранении: ' + (errorData.message || 'неизвестная ошибка'));
+      }
+    } catch (error) {
+      console.error("Ошибка:", error);
+      alert('Ошибка связи с сервером');
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Создание нового квиза</h1>
+        {/* Шапка с кнопкой назад */}
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Новая викторина</h1>
+          <button 
+            onClick={() => navigate('/dashboard')}
+            className="text-gray-500 hover:text-gray-700 font-medium"
+          >
+            Отмена
+          </button>
+        </div>
         
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Название квиза */}
@@ -39,7 +81,7 @@ const CreateQuiz = () => {
               type="text" 
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
               placeholder="Например: Основы JavaScript"
               required
             />
@@ -47,32 +89,35 @@ const CreateQuiz = () => {
 
           {/* Список вопросов */}
           {questions.map((q, qIndex) => (
-            <div key={qIndex} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 relative">
-              <button 
-                type="button"
-                onClick={() => removeQuestion(qIndex)}
-                className="absolute top-4 right-4 text-red-500 hover:text-red-700"
-              >
-                Удалить
-              </button>
+            <div key={qIndex} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 relative animate-in fade-in duration-300">
+              {questions.length > 1 && (
+                <button 
+                  type="button"
+                  onClick={() => removeQuestion(qIndex)}
+                  className="absolute top-4 right-4 text-red-400 hover:text-red-600 transition-colors"
+                >
+                  Удалить
+                </button>
+              )}
               
               <h3 className="font-bold mb-4 text-blue-600">Вопрос №{qIndex + 1}</h3>
               
               <input 
                 type="text"
                 placeholder="Текст вопроса"
-                className="w-full p-2 mb-4 border-b border-gray-200 focus:border-blue-500 outline-none"
+                className="w-full p-2 mb-6 border-b-2 border-gray-100 focus:border-blue-500 outline-none transition-colors"
                 value={q.questionText}
                 onChange={(e) => {
                     const newQs = [...questions];
                     newQs[qIndex].questionText = e.target.value;
                     setQuestions(newQs);
                 }}
+                required
               />
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {q.options.map((opt, oIndex) => (
-                  <div key={oIndex} className="flex items-center gap-2">
+                  <div key={oIndex} className={`flex items-center gap-3 p-2 rounded-lg border ${q.correctAnswer === oIndex ? 'border-green-500 bg-green-50' : 'border-gray-100'}`}>
                     <input 
                       type="radio" 
                       name={`correct-${qIndex}`} 
@@ -82,17 +127,19 @@ const CreateQuiz = () => {
                         newQs[qIndex].correctAnswer = oIndex;
                         setQuestions(newQs);
                       }}
+                      className="w-4 h-4 text-blue-600"
                     />
                     <input 
                       type="text" 
                       placeholder={`Вариант ${oIndex + 1}`}
-                      className="w-full p-2 bg-gray-50 rounded border border-gray-200 text-sm"
+                      className="w-full bg-transparent border-none text-sm outline-none"
                       value={opt}
                       onChange={(e) => {
                         const newQs = [...questions];
                         newQs[qIndex].options[oIndex] = e.target.value;
                         setQuestions(newQs);
                       }}
+                      required
                     />
                   </div>
                 ))}
@@ -100,19 +147,20 @@ const CreateQuiz = () => {
             </div>
           ))}
 
-          <div className="flex gap-4">
+          {/* Кнопки действий */}
+          <div className="flex flex-col md:flex-row gap-4 sticky bottom-8">
             <button 
               type="button" 
               onClick={addQuestion}
-              className="flex-1 py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:bg-gray-100 transition"
+              className="flex-1 py-4 bg-white border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-all font-medium"
             >
               + Добавить вопрос
             </button>
             <button 
               type="submit"
-              className="flex-1 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 shadow-lg"
+              className="flex-1 py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-xl transition-transform active:scale-95"
             >
-              Опубликовать квиз
+              Опубликовать в общую ленту
             </button>
           </div>
         </form>

@@ -58,9 +58,11 @@ router.post('/login', async (req, res) => {
             { expiresIn: '24h' }
         );
 
+        // Находим этот кусок в конце router.post('/login')
         res.json({
             message: "Вход выполнен успешно",
             token,
+            userId: user.id, // ДОБАВИЛИ ЭТУ СТРОКУ
             user: { id: user.id, username: user.username }
         });
 
