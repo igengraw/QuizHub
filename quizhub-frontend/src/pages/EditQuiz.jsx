@@ -44,27 +44,27 @@ const EditQuiz = () => {
       });
       
       if (response.ok) {
-        alert('Викторина успешно обновлена!');
+        alert('Quiz has been edited successfully!');
         navigate('/dashboard');
       }
     } catch (error) {
-      alert('Ошибка связи с сервером');
+      alert('Server connection error');
     }
   };
 
-  if (loading) return <div className="p-8 text-center">Загрузка данных...</div>;
+  if (loading) return <div className="p-8 text-center">Data loading...</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-3xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Редактирование</h1>
-          <button onClick={() => navigate('/dashboard')} className="text-gray-500 hover:text-gray-700">Отмена</button>
+          <h1 className="text-3xl font-bold text-gray-800">Editing</h1>
+          <button onClick={() => navigate('/dashboard')} className="text-gray-500 hover:text-gray-700">Cancel</button>
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Название теста</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Quiz label</label>
             <input 
               type="text" 
               value={title}
@@ -76,8 +76,8 @@ const EditQuiz = () => {
 
           {questions.map((q, qIndex) => (
             <div key={qIndex} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 relative">
-              <button type="button" onClick={() => removeQuestion(qIndex)} className="absolute top-4 right-4 text-red-400 hover:text-red-600">Удалить</button>
-              <h3 className="font-bold mb-4 text-blue-600">Вопрос №{qIndex + 1}</h3>
+              <button type="button" onClick={() => removeQuestion(qIndex)} className="absolute top-4 right-4 text-red-400 hover:text-red-600">Delete</button>
+              <h3 className="font-bold mb-4 text-blue-600">Question №{qIndex + 1}</h3>
               <input 
                 type="text"
                 className="w-full p-2 mb-6 border-b-2 border-gray-100 focus:border-blue-500 outline-none transition-colors"
@@ -90,7 +90,7 @@ const EditQuiz = () => {
                     newQs[qIndex].question_text = e.target.value;
                     setQuestions(newQs);
                 }}
-                placeholder="Введите текст вопроса"
+                placeholder="Enter question text"
                 required
               />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -125,10 +125,10 @@ const EditQuiz = () => {
 
           <div className="flex gap-4 sticky bottom-8">
             <button type="button" onClick={addQuestion} className="flex-1 py-4 bg-white border-2 border-dashed border-gray-300 rounded-xl text-gray-500">
-              + Добавить вопрос
+              + Add question
             </button>
             <button type="submit" className="flex-1 py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 shadow-xl">
-              Сохранить изменения
+              Save changes
             </button>
           </div>
         </form>

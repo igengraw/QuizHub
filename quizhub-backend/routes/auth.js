@@ -20,13 +20,13 @@ router.post('/register', async (req, res) => {
         );
 
         res.status(201).json({ 
-            message: "Пользователь успешно создан!",
+            message: "Account created succesfully",
             user: newUser.rows[0] 
         });
 
     } catch (err) {
         console.error(err.message);
-        res.status(500).json({ message: "Ошибка при регистрации. Возможно, email уже занят." });
+        res.status(500).json({ message: "Registration error. Email might be already in use" });
     }
 });
 
@@ -39,14 +39,14 @@ router.post('/login', async (req, res) => {
         const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
         
         if (userResult.rows.length === 0) {
-            return res.status(400).json({ message: "Неверный email или пароль" });
+            return res.status(400).json({ message: "Incorrect email or password" });
         }
 
         const user = userResult.rows[0];
 
         const isMatch = await bcrypt.compare(password, user.password_hash);
         if (!isMatch) {
-            return res.status(400).json({ message: "Неверный email или пароль" });
+            return res.status(400).json({ message: "Incorrect email or password" });
         }
 
         // ВАЖНО: Добавляем role в токен (payload)
@@ -58,7 +58,7 @@ router.post('/login', async (req, res) => {
 
         // ВАЖНО: Отправляем role в объекте user на фронтенд
         res.json({
-            message: "Вход выполнен успешно",
+            message: "Logged in successfully",
             token,
             user: { 
                 id: user.id, 
@@ -69,7 +69,7 @@ router.post('/login', async (req, res) => {
 
     } catch (err) {
         console.error(err.message);
-        res.status(500).json({ message: "Ошибка сервера при входе" });
+        res.status(500).json({ message: "Server error while entering" });
     }
 });
 

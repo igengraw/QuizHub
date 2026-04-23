@@ -75,14 +75,14 @@ const Dashboard = () => {
   }, [view]);
 
   const deleteQuiz = async (quizId) => {
-    if (window.confirm("Вы уверены, что хотите удалить этот квиз?")) {
+    if (window.confirm("Are you sure to delete the quiz?")) {
       try {
         const response = await fetch(`http://localhost:5000/api/quizzes/${quizId}`, {
           method: 'DELETE',
         });
         if (response.ok) fetchQuizzes();
       } catch (error) {
-        console.error("Ошибка при удалении:", error);
+        console.error("Deletion error", error);
       }
     }
   };
@@ -100,14 +100,14 @@ const Dashboard = () => {
             <h1 className="text-2xl font-bold text-blue-600">QuizHub</h1>
             {!isGuest && (
               <div className="flex gap-3 text-[10px] mt-1 font-bold uppercase tracking-wider">
-                <span className="text-blue-500 bg-blue-50 px-2 py-0.5 rounded">Создано: {userStats.created}</span>
-                <span className="text-green-500 bg-green-50 px-2 py-0.5 rounded">Пройдено: {userStats.passed}</span>
+                <span className="text-blue-500 bg-blue-50 px-2 py-0.5 rounded">Created: {userStats.created}</span>
+                <span className="text-green-500 bg-green-50 px-2 py-0.5 rounded">Passed: {userStats.passed}</span>
               </div>
             )}
           </div>
-          <h1 className="text-lg font-medium text-gray-700">Привет, {username}!</h1>
+          <h1 className="text-lg font-medium text-gray-700">Hello, {username}!</h1>
           <button onClick={handleLogout} className="bg-gray-100 text-red-500 hover:bg-gray-200 px-4 py-2 rounded-lg transition-all">
-            Выйти
+            Exit
           </button>
         </div>
       </nav>
@@ -116,19 +116,19 @@ const Dashboard = () => {
         {/* Переключатель вкладок */}
         <div className="flex gap-8 mb-8 border-b border-gray-200">
           <button onClick={() => setView('public')} className={`pb-4 text-lg font-semibold ${view === 'public' ? 'border-b-2 border-green-600 text-green-600' : 'text-gray-400'}`}>
-            Глобальная лента 🌍
+            Globe list 🌍
           </button>
           
           {!isGuest && (
             <button onClick={() => setView('my')} className={`pb-4 text-lg font-semibold ${view === 'my' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-400'}`}>
-              Моя студия 🛠️
+              My studio 🛠️
             </button>
           )}
 
           {/* ВКЛАДКА АДМИНА */}
           {isAdmin && (
             <button onClick={() => setView('admin')} className={`pb-4 text-lg font-semibold ${view === 'admin' ? 'border-b-2 border-red-600 text-red-600' : 'text-gray-400'}`}>
-              Админ-панель 🛡️
+              Admin-pannel 🛡️
             </button>
           )}
         </div>
@@ -138,21 +138,21 @@ const Dashboard = () => {
             <div className="relative w-full max-w-xl mb-8">
               <input 
                 type="text"
-                placeholder="Поиск по названию викторины..."
+                placeholder="Search by name..."
                 className="w-full pl-12 pr-4 py-3 rounded-2xl border border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 ring-offset-0 transition-all outline-none"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl">🔍</span>
             </div>
-            <h2 className="text-3xl font-bold text-gray-900">{view === 'public' ? 'Все викторины' : 'Мои инструменты'}</h2>
-            <p className="text-gray-500">{view === 'public' ? 'Проходи тесты от других пользователей' : 'Управляйте своими викторинами'}</p>
+            <h2 className="text-3xl font-bold text-gray-900">{view === 'public' ? 'All quizes' : 'My tools'}</h2>
+            <p className="text-gray-500">{view === 'public' ? 'Pass quizes' : 'Manage your own quizes'}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {loading ? (
-            <p className="text-gray-500 italic">Загрузка викторин...</p>
+            <p className="text-gray-500 italic">Quiz loading...</p>
           ) : (
             quizzes.map((quiz) => (
               <div key={quiz.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 relative hover:shadow-md transition-shadow">
@@ -160,38 +160,38 @@ const Dashboard = () => {
                 {/* ПЛАШКА С ЛИЧНЫМ РЕКОРДОМ (если есть) */}
                 {quiz.my_best_score !== null && Number(quiz.creator_id) !== Number(currentUserId) && (
                   <div className="absolute bottom-2 right-2 bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded-full border border-green-200 shadow-sm animate-in fade-in zoom-in duration-300">
-                    Ваш результат: {quiz.my_best_score} / {quiz.questions_count}
+                    Your result: {quiz.my_best_score} / {quiz.questions_count}
                   </div>
                 )}
 
                 <div className="flex justify-between items-start mb-4">
                   <div className="bg-g  reen-100 text-green-700 text-xs font-bold px-2 py-1 rounded uppercase">
-                    {view === 'public' ? 'Открытый' : 'Активен'}
+                    {view === 'public' ? 'Open' : 'Active'}
                   </div>
-                  <span className="text-gray-400 text-sm">{quiz.questions_count || 0} вопросов</span>
+                  <span className="text-gray-400 text-sm">{quiz.questions_count || 0} question(s)</span>
                 </div>
 
                 <h3 className="font-bold text-xl text-gray-800 mb-2 leading-tight">{quiz.title}</h3>
                 
                 {view === 'public' && quiz.author_name && (
-                   <p className="text-blue-500 text-xs mb-1">Автор: {quiz.author_name}</p>
+                   <p className="text-blue-500 text-xs mb-1">Autor: {quiz.author_name}</p>
                 )}
 
                 <p className="text-gray-600 text-sm font-medium mb-1">
-                  Прошли: <span className="text-blue-600">{quiz.attempts_count || 0}</span> раз(а)
+                  Passed: <span className="text-blue-600">{quiz.attempts_count || 0}</span> time(s)
                 </p>
 
-                <p className="text-gray-400 text-xs mb-6">Создан: {new Date(quiz.created_at).toLocaleDateString()}</p>
+                <p className="text-gray-400 text-xs mb-6">Created: {new Date(quiz.created_at).toLocaleDateString()}</p>
                 
                 <div className="flex gap-2">
                   {/* ЛОГИКА КНОПКИ: Начало или блокировка */}
                   {Number(quiz.creator_id) === Number(currentUserId) ? (
                     <button disabled className="flex-1 bg-gray-100 text-gray-400 py-2 rounded-lg font-medium cursor-not-allowed border border-gray-200 text-sm">
-                      Ваш квиз
+                      Your quiz
                     </button>
                   ) : (
                     <button onClick={() => navigate(`/quiz/${quiz.id}`)} className="flex-1 bg-green-600 text-white py-2 rounded-lg font-medium hover:bg-green-700">
-                      Начать
+                      Start
                     </button>
                   )}
                   {/* 2. Кнопка ИЗМЕНИТЬ (Только во вкладке "Моя студия") */}
@@ -200,7 +200,7 @@ const Dashboard = () => {
                       onClick={() => navigate(`/edit-quiz/${quiz.id}`)} 
                       className="flex-1 border border-gray-200 text-gray-600 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors text-sm"
                     >
-                      Изменить
+                      Edit
                     </button>
                   )}
                   {isAdmin && view === 'admin' && (
@@ -208,7 +208,7 @@ const Dashboard = () => {
                       onClick={() => navigate(`/view-quiz/${quiz.id}`)} 
                       className="flex-1 border border-gray-200 text-gray-600 py-2 rounded-lg font-medium hover:bg-gray-50"
                     >
-                      Просмотр
+                      Show
                     </button>
                   )}
 
@@ -231,7 +231,7 @@ const Dashboard = () => {
               <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-blue-100">
                 <span className="text-3xl text-gray-400 group-hover:text-blue-500">+</span>
               </div>
-              <p className="text-gray-500 font-medium group-hover:text-blue-500">Добавить тест</p>
+              <p className="text-gray-500 font-medium group-hover:text-blue-500">Add quiz</p>
             </div>
           )}
         </div>

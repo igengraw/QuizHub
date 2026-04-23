@@ -14,18 +14,18 @@ const ViewQuiz = () => {
       .catch(err => console.error(err));
   }, [id]);
 
-  if (!quiz) return <div className="p-10 text-center">Загрузка содержания...</div>;
+  if (!quiz) return <div className="p-10 text-center">Loading...</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-3xl mx-auto">
         <button onClick={() => navigate(-1)} className="mb-6 text-blue-600 font-medium hover:underline">
-          ← Назад в панель
+          ← Back to pannel
         </button>
         
         <div className="bg-white p-6 rounded-2xl border mb-8 shadow-sm">
           <h1 className="text-3xl font-bold text-gray-800">{quiz.title}</h1>
-          <p className="text-gray-500 mt-2">Режим просмотра (Только чтение)</p>
+          <p className="text-gray-500 mt-2">Read only mode</p>
         </div>
 
         <div className="space-y-6">
@@ -46,7 +46,7 @@ const ViewQuiz = () => {
                   >
                     <span className="text-sm font-medium">{opt}</span>
                     {oIdx === q.correctAnswer && (
-                      <span className="ml-2 text-green-600 font-bold">✓ (Ответ)</span>
+                      <span className="ml-2 text-green-600 font-bold">✓ (Answer)</span>
                     )}
                   </div>
                 ))}

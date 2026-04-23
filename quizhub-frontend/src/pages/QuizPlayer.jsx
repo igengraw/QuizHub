@@ -75,19 +75,19 @@ const QuizPlayer = () => {
     }
   };
 
-  if (questions.length === 0) return <div className="p-10 text-center">Загрузка вопросов...</div>;
+  if (questions.length === 0) return <div className="p-10 text-center">ЗLoading quiz...</div>;
 
   if (showResult) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="bg-white p-10 rounded-2xl shadow-xl text-center max-w-md w-full">
-          <h2 className="text-3xl font-bold mb-4">Результат 🎉</h2>
+          <h2 className="text-3xl font-bold mb-4">Result 🎉</h2>
           <p className="text-5xl font-extrabold text-blue-600 mb-6">{score} / {questions.length}</p>
           <button 
             onClick={() => navigate('/dashboard')}
             className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700"
           >
-            Вернуться в панель
+            Back to pannel
           </button>
         </div>
       </div>
@@ -112,7 +112,7 @@ const QuizPlayer = () => {
         >
           <div className="flex justify-between items-center mb-8">
             <span className="text-sm font-black text-blue-600 uppercase tracking-widest">
-              Вопрос {currentQuestion + 1} / {questions.length}
+              Question {currentQuestion + 1} / {questions.length}
             </span>
             <div className="h-2 w-32 bg-gray-100 rounded-full overflow-hidden">
               <motion.div 

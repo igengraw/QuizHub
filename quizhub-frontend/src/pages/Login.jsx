@@ -45,22 +45,22 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <form onSubmit={handleLogin} className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md space-y-4 border">
-        <h2 className="text-3xl font-extrabold text-center text-gray-900">С возвращением!</h2>
+        <h2 className="text-3xl font-extrabold text-center text-gray-900">Welcome back!</h2>
         <input 
           type="email" placeholder="Email" required
           className="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
           value={email} onChange={(e) => setEmail(e.target.value)}
         />
         <input 
-          type="password" placeholder="Пароль" required
+          type="password" placeholder="Password" required
           className="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
           value={password} onChange={(e) => setPassword(e.target.value)}
         />
         <button type="submit" className="w-full bg-blue-600 text-white p-4 rounded-xl font-bold hover:bg-blue-700 transition-all">
-          Войти
+          Sign in
         </button>
         <p className="text-center text-sm text-gray-600">
-          Нет аккаунта? <button type="button" onClick={() => navigate('/register')} className="text-blue-600 hover:underline">Создать</button>
+          Don't have account? <button type="button" onClick={() => navigate('/register')} className="text-blue-600 hover:underline">Create</button>
         </p>
       </form>
     </div>
