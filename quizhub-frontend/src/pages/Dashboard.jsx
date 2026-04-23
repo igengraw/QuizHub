@@ -5,97 +5,75 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const username = localStorage.getItem('username') || 'Гость';
   const token = localStorage.getItem('token');
-  const isGuest = !token; // Проверка на гостя
+  const isGuest = !token;
 
-  const [userStats, setUserStats] = useState({ passed: 0, created: 0 }); //для подсчета пройденных куизов в личном кабинете
+  // Постоянно получаем ID текущего пользователя для сравнения и запросов
+  const userData = localStorage.getItem('user');
+  const user = userData ? JSON.parse(userData) : null;
+  const currentUserId = user?.userId || user?.id || localStorage.getItem('userId');
 
-  // Состояния для данных
-  const [myQuizzes, setMyQuizzes] = useState([]);
+  const [userStats, setUserStats] = useState({ passed: 0, created: 0 }); 
+  const [quizzes, setQuizzes] = useState([]); // Используем одно название для списка
   const [loading, setLoading] = useState(true);
-  
-  // Состояние текущей вкладки: 'public' (все куизы) или 'my' (только свои)
   const [view, setView] = useState('public');
 
+  const isAdmin = user?.role === 'admin'; // Проверяем роль из базы
+
+
+  // 1. Загрузка статистики для шапки
   useEffect(() => {
     const fetchStats = async () => {
-      // 1. Извлекаем ID так же, как в других частях приложения
-      const userData = localStorage.getItem('user');
-      const user = userData ? JSON.parse(userData) : null;
-      const id = user?.userId || user?.id || localStorage.getItem('userId');
-
-      // Если ID нет (гость), просто выходим
-      if (!id || isGuest) return;
-
+      if (!currentUserId || isGuest) return;
       try {
-        const response = await fetch(`http://localhost:5000/api/quizzes/user-stats?userId=${id}`);
+        const response = await fetch(`http://localhost:5000/api/quizzes/user-stats?userId=${currentUserId}`);
         const data = await response.json();
-        if (response.ok) {
-          setUserStats(data);
-        }
+        if (response.ok) setUserStats(data);
       } catch (e) { 
-        console.error("Ошибка при загрузке статистики:", e); 
+        console.error("Ошибка статистики:", e); 
       }
     };
-
     fetchStats();
-  }, [isGuest]); // Добавили isGuest в зависимости: если гость войдет, статистика обновится
+  }, [currentUserId, isGuest]); 
 
-  // Функция загрузки данных с учетом выбранной вкладки
+  // 2. Универсальная загрузка квизов (Глобальные или Мои)
   const fetchQuizzes = async () => {
-  setLoading(true);
-  try {
-    let url = 'http://localhost:5000/api/quizzes/public';
-    
-    if (view === 'my') {
-      // Ищем ID пользователя. Проверяем ключ 'user', затем 'userId'
-      const userData = localStorage.getItem('user');
-      const user = userData ? JSON.parse(userData) : null;
-      
-      // Пытаемся достать ID из разных возможных мест
-      const id = user?.userId || user?.id || localStorage.getItem('userId'); 
-      
-      if (!id) {
-        console.error("ID пользователя не найден. Проверьте localStorage.");
-        setMyQuizzes([]);
-        setLoading(false);
-        return;
+    setLoading(true);
+    try {
+      let url;
+      if (view === 'my') {
+        url = `http://localhost:5000/api/quizzes/my?userId=${currentUserId}`;
+      } else if (view === 'admin') {
+        url = `http://localhost:5000/api/quizzes/admin/all`; // Новый роут для админа
+      } else {
+        url = `http://localhost:5000/api/quizzes/public${currentUserId ? `?userId=${currentUserId}` : ''}`;
       }
-      
-      url = `http://localhost:5000/api/quizzes/my?userId=${id}`;
-    }
 
-    const response = await fetch(url);
+      const response = await fetch(url);
       const data = await response.json();
-      if (response.ok) {
-        setMyQuizzes(data);
-      }
+      if (response.ok) setQuizzes(data);
     } catch (error) {
-      console.error("Ошибка при получении квизов:", error);
+      console.error("Ошибка загрузки:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Функция удаления куиза
+  useEffect(() => {
+    fetchQuizzes();
+  }, [view]);
+
   const deleteQuiz = async (quizId) => {
     if (window.confirm("Вы уверены, что хотите удалить этот квиз?")) {
       try {
         const response = await fetch(`http://localhost:5000/api/quizzes/${quizId}`, {
           method: 'DELETE',
         });
-        if (response.ok) {
-          fetchQuizzes(); // Обновляем список после удаления
-        }
+        if (response.ok) fetchQuizzes();
       } catch (error) {
         console.error("Ошибка при удалении:", error);
       }
     }
   };
-
-  // Перезагрузка данных при смене вкладки
-  useEffect(() => {
-    fetchQuizzes();
-  }, [view]);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -104,156 +82,121 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Навигационная панель */}
       <nav className="bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-blue-600">QuizHub</h1>
-            
-            {/* 3. ОТОБРАЖАЕМ СТАТИСТИКУ В ШАПКЕ */}
             {!isGuest && (
               <div className="flex gap-3 text-[10px] mt-1 font-bold uppercase tracking-wider">
-                <span className="text-blue-500 bg-blue-50 px-2 py-0.5 rounded">
-                  Создано: {userStats.created}
-                </span>
-                <span className="text-green-500 bg-green-50 px-2 py-0.5 rounded">
-                  Пройдено: {userStats.passed}
-                </span>
+                <span className="text-blue-500 bg-blue-50 px-2 py-0.5 rounded">Создано: {userStats.created}</span>
+                <span className="text-green-500 bg-green-50 px-2 py-0.5 rounded">Пройдено: {userStats.passed}</span>
               </div>
             )}
           </div>
-
           <h1 className="text-lg font-medium text-gray-700">Привет, {username}!</h1>
-          <div className="flex items-center gap-6">
-            <button 
-              onClick={handleLogout}
-              className="text-red-500 hover:bg-red-50 px-4 py-2 rounded-lg transition-all"
-            >
-              Выйти
-            </button>
-          </div>
+          <button onClick={handleLogout} className="bg-gray-100 text-red-500 hover:bg-gray-200 px-4 py-2 rounded-lg transition-all">
+            Выйти
+          </button>
         </div>
       </nav>
       
-      {/* Основной контент */}
       <main className="p-6 md:p-10 max-w-6xl mx-auto">
-        
-        {/* ПЕРЕКЛЮЧАТЕЛЬ ВКЛАДОК */}
+        {/* Переключатель вкладок */}
         <div className="flex gap-8 mb-8 border-b border-gray-200">
-          <button 
-            onClick={() => setView('public')}
-            className={`pb-4 text-lg font-semibold transition-all ${
-              view === 'public' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-400'
-            }`}
-          >
+          <button onClick={() => setView('public')} className={`pb-4 text-lg font-semibold ${view === 'public' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-400'}`}>
             Глобальная лента 🌍
           </button>
           
           {!isGuest && (
-            <button 
-              onClick={() => setView('my')}
-              className={`pb-4 text-lg font-semibold transition-all ${
-                view === 'my' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-400'
-              }`}
-            >
+            <button onClick={() => setView('my')} className={`pb-4 text-lg font-semibold ${view === 'my' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-400'}`}>
               Моя студия 🛠️
+            </button>
+          )}
+
+          {/* ВКЛАДКА АДМИНА */}
+          {isAdmin && (
+            <button onClick={() => setView('admin')} className={`pb-4 text-lg font-semibold ${view === 'admin' ? 'border-b-2 border-red-600 text-red-600' : 'text-gray-400'}`}>
+              Админ-панель 🛡️
             </button>
           )}
         </div>
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900">
-              {view === 'public' ? 'Все викторины' : 'Мои инструменты'}
-            </h2>
-            <p className="text-gray-500">
-              {view === 'public' 
-                ? 'Проходи тесты от других пользователей' 
-                : 'Управляйте своими викторинами и просматривайте статистику'}
-            </p>
+            <h2 className="text-3xl font-bold text-gray-900">{view === 'public' ? 'Все викторины' : 'Мои инструменты'}</h2>
+            <p className="text-gray-500">{view === 'public' ? 'Проходи тесты от других пользователей' : 'Управляйте своими викторинами'}</p>
           </div>
-          
-          {/* Кнопка создания с проверкой на гостя */}
-          <button 
-            onClick={() => {
-              if (isGuest) {
-                alert("Пожалуйста, войдите или зарегистрируйтесь, чтобы создавать квизы!");
-                navigate('/login');
-              } else {
-                navigate('/create-quiz');
-              }
-            }}
-            className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg active:scale-95"
-          >
-            + Создать новый квиз
-          </button>
         </div>
 
-        {/* Сетка с карточками квизов */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {loading ? (
             <p className="text-gray-500 italic">Загрузка викторин...</p>
           ) : (
-            myQuizzes.map((quiz) => (
-              <div key={quiz.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            quizzes.map((quiz) => (
+              <div key={quiz.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 relative hover:shadow-md transition-shadow">
+                
+                {/* ПЛАШКА С ЛИЧНЫМ РЕКОРДОМ (если есть) */}
+                {quiz.my_best_score !== null && Number(quiz.creator_id) !== Number(currentUserId) && (
+                  <div className="absolute bottom-2 right-2 bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded-full border border-green-200 shadow-sm animate-in fade-in zoom-in duration-300">
+                    Ваш результат: {quiz.my_best_score} / {quiz.questions_count}
+                  </div>
+                )}
+
                 <div className="flex justify-between items-start mb-4">
-                  <div className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded uppercase">
+                  <div className="bg-g  reen-100 text-green-700 text-xs font-bold px-2 py-1 rounded uppercase">
                     {view === 'public' ? 'Открытый' : 'Активен'}
                   </div>
-                  <span className="text-gray-400 text-sm">
-                    {quiz.questions_count || 0} вопросов
-                  </span>
+                  <span className="text-gray-400 text-sm">{quiz.questions_count || 0} вопросов</span>
                 </div>
-                <h3 className="font-bold text-xl text-gray-800 mb-2">{quiz.title}</h3>
+
+                <h3 className="font-bold text-xl text-gray-800 mb-2 leading-tight">{quiz.title}</h3>
                 
-                {/* Если в ленте, показываем автора */}
                 {view === 'public' && quiz.author_name && (
                    <p className="text-blue-500 text-xs mb-1">Автор: {quiz.author_name}</p>
                 )}
 
-                {/* СТАТИСТИКА: сколько раз прошли куиз */}
                 <p className="text-gray-600 text-sm font-medium mb-1">
                   Прошли: <span className="text-blue-600">{quiz.attempts_count || 0}</span> раз(а)
                 </p>
 
-                <p className="text-gray-400 text-xs mb-6">
-                  Создан: {new Date(quiz.created_at).toLocaleDateString()}
-                </p>
+                <p className="text-gray-400 text-xs mb-6">Создан: {new Date(quiz.created_at).toLocaleDateString()}</p>
                 
                 <div className="flex gap-2">
-                  <button 
-                    onClick={() => navigate(`/quiz/${quiz.id}`)}
-                    className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700"
-                  >
-                    Начать
-                  </button>
+                  {/* ЛОГИКА КНОПКИ: Начало или блокировка */}
+                  {Number(quiz.creator_id) === Number(currentUserId) ? (
+                    <button disabled className="flex-1 bg-gray-100 text-gray-400 py-2 rounded-lg font-medium cursor-not-allowed border border-gray-200 text-sm">
+                      Ваш квиз
+                    </button>
+                  ) : (
+                    <button onClick={() => navigate(`/quiz/${quiz.id}`)} className="flex-1 bg-green-600 text-white py-2 rounded-lg font-medium hover:bg-green-700">
+                      Начать
+                    </button>
+                  )}
+                  {isAdmin && view === 'admin' && (
+                    <button 
+                      onClick={() => navigate(`/view-quiz/${quiz.id}`)} 
+                      className="flex-1 border border-gray-200 text-gray-600 py-2 rounded-lg font-medium hover:bg-gray-50"
+                    >
+                      Просмотр
+                    </button>
+                  )}
 
-                  {/* Кнопки управления появляются ТОЛЬКО во вкладке "Моя студия" */}
-                  {view === 'my' && (
-                    <>
-                      <button className="flex-1 border border-gray-200 text-gray-600 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors">
-                        Изменить
-                      </button>
-                      <button 
-                        onClick={() => deleteQuiz(quiz.id)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg border border-red-100 transition-colors"
-                        title="Удалить"
-                      >
-                        🗑️
-                      </button>
-                    </>
+                  {(view === 'my' || (isAdmin && view === 'admin')) && (
+                    <button 
+                      onClick={() => deleteQuiz(quiz.id)} 
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg border border-red-100"
+                      title="Удалить квиз"
+                    >
+                      🗑️
+                    </button>
                   )}
                 </div>
               </div>
             ))
           )}
 
-          {/* Карточка-кнопка добавления видна только авторизованным и во вкладке "Мои" */}
           {!loading && view === 'my' && (
-            <div 
-              onClick={() => navigate('/create-quiz')}
-              className="border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center p-10 cursor-pointer hover:bg-white hover:border-blue-400 transition-all group"
-            >
+            <div onClick={() => navigate('/create-quiz')} className="border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center p-10 cursor-pointer hover:bg-white hover:border-blue-400 transition-all group">
               <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-blue-100">
                 <span className="text-3xl text-gray-400 group-hover:text-blue-500">+</span>
               </div>

@@ -18,11 +18,9 @@ const Login = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // Сохраняем токен и имя
         localStorage.setItem('token', data.token);
         localStorage.setItem('username', data.user?.username || 'Пользователь');
         
-        // Извлекаем ID (теперь бэкенд шлет userId напрямую)
         const id = data.userId || data.user?.id;
         
         if (id) {

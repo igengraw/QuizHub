@@ -11,13 +11,31 @@ const QuizPlayer = () => {
   const [showResult, setShowResult] = useState(false);
 
   useEffect(() => {
-    const fetchQuestions = async () => {
+  const fetchQuestions = async () => {
+    try {
       const response = await fetch(`http://localhost:5000/api/quizzes/${id}`);
+      
+      // Если сервер ответил 404 или 500
+      if (!response.ok) {
+        throw new Error(`Ошибка ${response.status}: Квиз не найден`);
+      }
+
       const data = await response.json();
-      setQuestions(data);
-    };
-    fetchQuestions();
-  }, [id]);
+
+      // ВАЖНО: Парсим варианты ответов, если они пришли строкой из базы
+      const formattedData = data.map(q => ({
+        ...q,
+        options: typeof q.options === 'string' ? JSON.parse(q.options) : q.options
+      }));
+
+      setQuestions(formattedData);
+    } catch (err) {
+      console.error("Критическая ошибка загрузки:", err.message);
+      // Можно добавить состояние setError(err.message), чтобы вывести текст на экран
+    }
+  };
+  fetchQuestions();
+}, [id]);
 
   const handleAnswer = async (option) => {
     let currentScore = score;
@@ -34,11 +52,9 @@ const QuizPlayer = () => {
     } else {
       setShowResult(true);
       
-      // ИСПРАВЛЕННЫЙ БЛОК ПОЛУЧЕНИЯ ID
       const userData = localStorage.getItem('user');
       const user = userData ? JSON.parse(userData) : null;
       
-      // Проверяем все возможные варианты: userId (из токена), id или напрямую из localStorage
       const actualUserId = user?.userId || user?.id || localStorage.getItem('userId');
 
       try {

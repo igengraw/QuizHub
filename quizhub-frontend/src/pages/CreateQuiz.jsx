@@ -8,12 +8,10 @@ const CreateQuiz = () => {
     { questionText: '', options: ['', '', '', ''], correctAnswer: 0 }
   ]);
 
-  // Добавление нового пустого вопроса
   const addQuestion = () => {
     setQuestions([...questions, { questionText: '', options: ['', '', '', ''], correctAnswer: 0 }]);
   };
 
-  // Удаление вопроса
   const removeQuestion = (index) => {
     const newQuestions = questions.filter((_, i) => i !== index);
     setQuestions(newQuestions);
@@ -22,11 +20,9 @@ const CreateQuiz = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // 1. Пытаемся достать ID всеми способами
     const userData = localStorage.getItem('user');
     const user = userData ? JSON.parse(userData) : null;
     
-    // Ищем userId (как в токене) или id
     const creatorId = user?.userId || user?.id || localStorage.getItem('userId');
 
     console.log("DEBUG: Пытаюсь создать квиз с creatorId:", creatorId);
@@ -37,7 +33,6 @@ const CreateQuiz = () => {
       return;
     }
 
-    // 2. Если ID есть, отправляем запрос
     try {
       const response = await fetch('http://localhost:5000/api/quizzes', {
         method: 'POST',
@@ -45,7 +40,6 @@ const CreateQuiz = () => {
         body: JSON.stringify({ title, questions, creatorId: Number(creatorId) }) // Явно в число
       });
       
-      // ... дальше твой код (if response.ok и т.д.)
       if (response.ok) {
         alert('Викторина успешно создана!');
         navigate('/dashboard');

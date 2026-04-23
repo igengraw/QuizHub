@@ -30,14 +30,12 @@ router.post('/register', async (req, res) => {
     }
 });
 
-import jwt from 'jsonwebtoken'; // Не забудь добавить импорт в начало файла!
+import jwt from 'jsonwebtoken'; 
 
-// Маршрут входа: POST /api/auth/login
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // 1. Ищем пользователя по email
         const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
         if (userResult.rows.length === 0) {
             return res.status(400).json({ message: "Неверный email или пароль" });
@@ -45,24 +43,21 @@ router.post('/login', async (req, res) => {
 
         const user = userResult.rows[0];
 
-        // 2. Сравниваем введенный пароль с зашифрованным в базе
         const isMatch = await bcrypt.compare(password, user.password_hash);
         if (!isMatch) {
             return res.status(400).json({ message: "Неверный email или пароль" });
         }
 
-        // 3. Создаем токен (паспорт пользователя)
         const token = jwt.sign(
             { userId: user.id, username: user.username },
             process.env.JWT_SECRET,
             { expiresIn: '24h' }
         );
 
-        // Находим этот кусок в конце router.post('/login')
         res.json({
             message: "Вход выполнен успешно",
             token,
-            userId: user.id, // ДОБАВИЛИ ЭТУ СТРОКУ
+            userId: user.id, 
             user: { id: user.id, username: user.username }
         });
 
