@@ -1,22 +1,22 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken'; 
 import pool from '../db.js';
 
 const router = express.Router();
 
-// Маршрут регистрации
+// 1. Маршрут регистрации
 router.post('/register', async (req, res) => {
     try {
         const { username, email, password } = req.body;
 
-        // Хешируем пароль (для безопасности)
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
 
-        // Сохраняем пользователя в Supabase
+        // Добавляем 'role' в RETURNING, чтобы сразу знать роль нового юзера (по умолчанию 'user')
         const newUser = await pool.query(
-            'INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id, username, email',
-            [username, email, passwordHash]
+            'INSERT INTO users (username, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, username, email, role',
+            [username, email, passwordHash, 'user'] // При регистрации всегда даем роль 'user'
         );
 
         res.status(201).json({ 
@@ -30,13 +30,14 @@ router.post('/register', async (req, res) => {
     }
 });
 
-import jwt from 'jsonwebtoken'; 
-
+// 2. Маршрут входа
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
 
+        // Выбираем всё (включая колонку role)
         const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+        
         if (userResult.rows.length === 0) {
             return res.status(400).json({ message: "Неверный email или пароль" });
         }
@@ -48,17 +49,22 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ message: "Неверный email или пароль" });
         }
 
+        // ВАЖНО: Добавляем role в токен (payload)
         const token = jwt.sign(
-            { userId: user.id, username: user.username },
+            { userId: user.id, username: user.username, role: user.role },
             process.env.JWT_SECRET,
             { expiresIn: '24h' }
         );
 
+        // ВАЖНО: Отправляем role в объекте user на фронтенд
         res.json({
             message: "Вход выполнен успешно",
             token,
-            userId: user.id, 
-            user: { id: user.id, username: user.username }
+            user: { 
+                id: user.id, 
+                username: user.username, 
+                role: user.role // Теперь Dashboard.jsx увидит эту роль
+            }
         });
 
     } catch (err) {

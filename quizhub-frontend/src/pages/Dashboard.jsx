@@ -16,8 +16,10 @@ const Dashboard = () => {
   const [quizzes, setQuizzes] = useState([]); // Используем одно название для списка
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('public');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const isAdmin = user?.role === 'admin'; // Проверяем роль из базы
+
 
 
   // 1. Загрузка статистики для шапки
@@ -40,23 +42,33 @@ const Dashboard = () => {
     setLoading(true);
     try {
       let url;
+      const searchParam = searchTerm ? `&search=${searchTerm}` : '';
+
       if (view === 'my') {
-        url = `http://localhost:5000/api/quizzes/my?userId=${currentUserId}`;
+        url = `http://localhost:5000/api/quizzes/my?userId=${currentUserId}${searchParam}`;
       } else if (view === 'admin') {
-        url = `http://localhost:5000/api/quizzes/admin/all`; // Новый роут для админа
+        url = `http://localhost:5000/api/quizzes/admin/all?search=${searchTerm}`;
       } else {
-        url = `http://localhost:5000/api/quizzes/public${currentUserId ? `?userId=${currentUserId}` : ''}`;
+        url = `http://localhost:5000/api/quizzes/public?userId=${currentUserId || ''}${searchParam}`;
       }
 
       const response = await fetch(url);
       const data = await response.json();
-      if (response.ok) setQuizzes(data);
+      setQuizzes(data);
     } catch (error) {
-      console.error("Ошибка загрузки:", error);
+      console.error(error);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+  const delayDebounceFn = setTimeout(() => {
+    fetchQuizzes();
+      }, 500); // Поиск сработает через 0.5 сек после того, как пользователь перестанет печатать
+
+      return () => clearTimeout(delayDebounceFn);
+    }, [searchTerm]);
 
   useEffect(() => {
     fetchQuizzes();
@@ -103,7 +115,7 @@ const Dashboard = () => {
       <main className="p-6 md:p-10 max-w-6xl mx-auto">
         {/* Переключатель вкладок */}
         <div className="flex gap-8 mb-8 border-b border-gray-200">
-          <button onClick={() => setView('public')} className={`pb-4 text-lg font-semibold ${view === 'public' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-400'}`}>
+          <button onClick={() => setView('public')} className={`pb-4 text-lg font-semibold ${view === 'public' ? 'border-b-2 border-green-600 text-green-600' : 'text-gray-400'}`}>
             Глобальная лента 🌍
           </button>
           
@@ -123,6 +135,16 @@ const Dashboard = () => {
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
           <div>
+            <div className="relative w-full max-w-xl mb-8">
+              <input 
+                type="text"
+                placeholder="Поиск по названию викторины..."
+                className="w-full pl-12 pr-4 py-3 rounded-2xl border border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 ring-offset-0 transition-all outline-none"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl">🔍</span>
+            </div>
             <h2 className="text-3xl font-bold text-gray-900">{view === 'public' ? 'Все викторины' : 'Мои инструменты'}</h2>
             <p className="text-gray-500">{view === 'public' ? 'Проходи тесты от других пользователей' : 'Управляйте своими викторинами'}</p>
           </div>
@@ -170,6 +192,15 @@ const Dashboard = () => {
                   ) : (
                     <button onClick={() => navigate(`/quiz/${quiz.id}`)} className="flex-1 bg-green-600 text-white py-2 rounded-lg font-medium hover:bg-green-700">
                       Начать
+                    </button>
+                  )}
+                  {/* 2. Кнопка ИЗМЕНИТЬ (Только во вкладке "Моя студия") */}
+                  {view === 'my' && (
+                    <button 
+                      onClick={() => navigate(`/edit-quiz/${quiz.id}`)} 
+                      className="flex-1 border border-gray-200 text-gray-600 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors text-sm"
+                    >
+                      Изменить
                     </button>
                   )}
                   {isAdmin && view === 'admin' && (

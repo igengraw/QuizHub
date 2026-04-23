@@ -21,16 +21,20 @@ const Login = () => {
         localStorage.setItem('token', data.token);
         localStorage.setItem('username', data.user?.username || 'Пользователь');
         
-        const id = data.userId || data.user?.id;
-        
-        if (id) {
-          localStorage.setItem('userId', id);
-          localStorage.setItem('user', JSON.stringify({ userId: id }));
-          console.log("Успешный вход, ID сохранен:", id);
+        // КРИТИЧЕСКИЙ МОМЕНТ: Сохраняем весь объект пользователя целиком
+        // Теперь там будет и id, и username, и наша ROLE
+        if (data.user) {
+          localStorage.setItem('user', JSON.stringify(data.user)); 
+          localStorage.setItem('userId', data.user.id); // оставляем для совместимости
+          
+          console.log("Успешный вход, данные пользователя сохранены:", data.user);
+          
           navigate('/dashboard');
+          // Перезагружаем, чтобы Dashboard сразу увидел новую роль в localStorage
+          window.location.reload(); 
         } else {
-          console.error("Сервер не прислал ID пользователя!", data);
-          alert("Ошибка: не удалось получить ID пользователя");
+          console.error("Сервер не прислал данные пользователя!", data);
+          alert("Ошибка: данные пользователя не получены");
         }
       }
     } catch (error) {

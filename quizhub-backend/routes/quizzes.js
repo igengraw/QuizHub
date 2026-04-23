@@ -5,58 +5,78 @@ const router = express.Router();
 
 router.get('/public', async (req, res) => {
     try {
-        // Получаем ID того, кто сейчас смотрит ленту
-        const { userId } = req.query; 
+        const { userId, search } = req.query; // Получаем поисковый запрос
 
-        const result = await pool.query(`
+        let queryText = `
             SELECT 
                 q.*, 
                 u.username as author_name,
                 (SELECT COUNT(*) FROM questions WHERE quiz_id = q.id) as questions_count,
                 (SELECT COUNT(*) FROM results WHERE quiz_id = q.id) as attempts_count,
-                -- Добавляем подзапрос: ищем лучший результат текущего пользователя
                 (SELECT MAX(score) FROM results WHERE quiz_id = q.id AND user_id = $1) as my_best_score
             FROM quizzes q
             JOIN users u ON q.creator_id = u.id
-            ORDER BY q.created_at DESC
-        `, [userId || null]); // Если гость, то userId будет null
-        
+        `;
+
+        const params = [userId || null];
+
+        // Если пришел поисковый запрос, добавляем фильтрацию
+        if (search) {
+            queryText += ` WHERE q.title ILIKE $2 `;
+            params.push(`%${search}%`); // Символы % позволяют искать внутри строки
+        }
+
+        queryText += ` ORDER BY q.created_at DESC `;
+
+        const result = await pool.query(queryText, params);
         res.json(result.rows);
     } catch (err) {
-        console.error("Ошибка в /public:", err.message);
-        res.status(500).json({ message: "Ошибка загрузки ленты" });
+        console.error(err.message);
+        res.status(500).json({ message: "Ошибка поиска" });
     }
 });
 
 router.get('/my', async (req, res) => {
     try {
-        const { userId } = req.query;
+        const { userId, search } = req.query;
 
         if (!userId || userId === 'undefined') {
             return res.status(400).json({ message: "Необходим корректный userId" });
         }
 
-        const result = await pool.query(`
+        let queryText = `
             SELECT 
                 q.*, 
                 (SELECT COUNT(*) FROM questions WHERE quiz_id = q.id) as questions_count,
                 (SELECT COUNT(*) FROM results WHERE quiz_id = q.id) as attempts_count
             FROM quizzes q
             WHERE q.creator_id = $1
-            ORDER BY q.created_at DESC
-        `, [userId]);
-        
+        `;
+
+        const params = [userId];
+
+        // Добавляем поиск, если он есть
+        if (search) {
+            queryText += ` AND q.title ILIKE $2 `;
+            params.push(`%${search}%`);
+        }
+
+        queryText += ` ORDER BY q.created_at DESC `;
+
+        const result = await pool.query(queryText, params);
         res.json(result.rows);
     } catch (err) {
         console.error("Ошибка в /my:", err.message);
-        res.status(500).json({ message: "Ошибка сервера при получении статистики" });
+        res.status(500).json({ message: "Ошибка сервера" });
     }
 });
 
 // Получить ВСЕ квизы для панели администратора
 router.get('/admin/all', async (req, res) => {
     try {
-        const result = await pool.query(`
+        const { search } = req.query;
+
+        let queryText = `
             SELECT 
                 q.*, 
                 u.username as author_name,
@@ -64,12 +84,22 @@ router.get('/admin/all', async (req, res) => {
                 (SELECT COUNT(*) FROM results WHERE quiz_id = q.id) as attempts_count
             FROM quizzes q
             JOIN users u ON q.creator_id = u.id
-            ORDER BY q.created_at DESC
-        `);
+        `;
+
+        const params = [];
+
+        if (search) {
+            queryText += ` WHERE q.title ILIKE $1 `;
+            params.push(`%${search}%`);
+        }
+
+        queryText += ` ORDER BY q.created_at DESC `;
+
+        const result = await pool.query(queryText, params);
         res.json(result.rows);
     } catch (err) {
         console.error("Ошибка админ-панели:", err.message);
-        res.status(500).json({ message: "Ошибка сервера при загрузке всех данных" });
+        res.status(500).json({ message: "Ошибка сервера" });
     }
 });
 
